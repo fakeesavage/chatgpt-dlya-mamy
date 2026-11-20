@@ -160,7 +160,7 @@ function updateNav(route) {
     const done = state.done.includes(lesson.id);
     return `<a class="nav-item" href="#${lesson.id}"${route === lesson.id ? ' aria-current="page"' : ''}>
       <span class="nav-number${done ? ' done' : ''}" aria-hidden="true">${done ? '✓' : index + 1}</span>
-      <span>${lesson.title}${done ? '<span hidden> (прочитано)</span>' : ''}</span></a>`;
+      <span>${lesson.title}${lesson.optional ? '<small class="optional-label">На потом</small>' : ''}${done ? '<span hidden> (прочитано)</span>' : ''}</span></a>`;
   }).join('');
   const overview = byId('overview-link');
   if (route === 'home') overview.setAttribute('aria-current', 'page');
@@ -188,14 +188,14 @@ function renderHome() {
           <a class="outline" href="#prompts">Как писать запросы</a>
         </div>
       </div>
-      <div class="art" aria-hidden="true"><i class="art-orbit"></i><i class="art-orbit"></i><div class="art-note"><i></i><i></i><i></i></div><div class="art-heart">♥</div><span class="art-star">✦</span><span class="art-star small">✧</span></div>
+      <img class="hero-illustration" src="images/course-cover.jpg" alt="" width="900" height="600">
     </section>
     <section class="home-section">
       <h2>Главы курса</h2>
       <p>В каждой главе есть короткий тест. Его можно пропустить.</p>
       <div class="chapter-grid">${lessons.map((lesson, index) => {
         const done = state.done.includes(lesson.id);
-        return `<a href="#${lesson.id}" class="chapter-card"><span class="card-number" aria-hidden="true">${done ? '✓' : index + 1}</span><span><strong>${lesson.title}</strong><small>${lesson.summary}${done ? ' Глава прочитана.' : ''}</small></span></a>`;
+        return `<a href="#${lesson.id}" class="chapter-card"><span class="card-number" aria-hidden="true">${done ? '✓' : index + 1}</span><span><strong>${lesson.title}</strong>${lesson.optional ? '<small class="optional-label">На потом</small>' : ''}<small>${lesson.summary}${done ? ' Глава прочитана.' : ''}</small></span></a>`;
       }).join('')}</div>
     </section>`;
 }
@@ -214,21 +214,96 @@ function updatePlatform() {
   main.querySelectorAll('button[data-platform]').forEach((button) => {
     button.setAttribute('aria-pressed', String(button.dataset.platform === state.platform));
   });
-  const steps = platformSteps[panel.dataset.platformSteps][state.platform];
+  const topic = panel.dataset.platformSteps;
+  const steps = platformSteps[topic][state.platform];
   panel.innerHTML = `<h3>${state.platform === 'android' ? 'На телефоне Android' : 'В приложении Windows'}</h3>
-    <ol>${steps.map((step) => `<li>${step}</li>`).join('')}</ol>`;
+    <ol>${steps.map((step) => `<li>${step}</li>`).join('')}</ol>
+    ${state.platform === 'android' && androidGuides[topic] ? renderAndroidGuide(androidGuides[topic]) : ''}`;
+}
+
+function renderAndroidGuide({ image, alt, caption, markers, send }) {
+  return `<figure class="android-guide">
+    <div class="android-screen">
+      <img src="${image}" alt="${alt}" width="640" height="1138" loading="lazy">
+      ${markers.map(([left, top]) => `<span class="screen-marker" style="--marker-left:${left}%;--marker-top:${top}%" aria-hidden="true"></span>`).join('')}
+    </div>
+    <figcaption>
+      <p>${caption}</p>
+      ${send ? '<p class="send-guide"><span aria-hidden="true">↑</span> <span>Отправка. Когда напишешь сообщение, ищи кнопку со стрелкой вверх справа от поля.</span></p>' : ''}
+      <p><a href="https://play.google.com/store/apps/details?id=com.openai.chatgpt" target="_blank" rel="noopener noreferrer">Источник скриншота — страница ChatGPT в Google Play</a>. Интерфейс на твоём телефоне может немного отличаться.</p>
+    </figcaption>
+  </figure>`;
 }
 
 function renderExamples(examples) {
-  return examples.map(([title, weak, strong, why]) => `
-    <article class="example">
-      <h3>${title}</h3>
+  return `<p class="section-note">Это учебные диалоги. Сравни, что можно сделать с каждым ответом.</p>
+  ${examples.map(([title, weak, strong, weakAnswer, strongAnswer, why], index) => `
+    <details class="example"${index === 0 ? ' open' : ''}>
+      <summary>${escapeHtml(title)}</summary>
       <div class="comparison">
-        <div class="sample"><strong>Слабый запрос</strong><blockquote>«${escapeHtml(weak)}»</blockquote></div>
-        <div class="sample better"><strong>Удачный запрос</strong><blockquote>«${escapeHtml(strong)}»</blockquote></div>
+        <div class="sample">
+          <strong>Слабый запрос</strong><blockquote>«${escapeHtml(weak)}»</blockquote>
+          <div class="sample-reply"><strong>Неудачный ответ</strong><p>${escapeHtml(weakAnswer)}</p></div>
+        </div>
+        <div class="sample better">
+          <strong>Удачный запрос</strong><blockquote>«${escapeHtml(strong)}»</blockquote>
+          <div class="sample-reply"><strong>Удачный ответ</strong><p>${escapeHtml(strongAnswer)}</p></div>
+        </div>
       </div>
-      <div class="example-end"><p>${why}</p><button class="outline" type="button" data-copy="${escapeHtml(strong)}">Скопировать запрос</button></div>
-    </article>`).join('');
+      <div class="example-end"><p><strong>В чём разница.</strong> ${escapeHtml(why)}</p><button class="outline" type="button" data-copy="${escapeHtml(strong)}">Скопировать удачный запрос</button></div>
+    </details>`).join('')}`;
+}
+
+function renderDinnerDemo() {
+  return `<div class="dinner-demo" data-dinner-demo>
+    <p>Выбери уточнение и посмотри, как изменится ответ в этом учебном чате.</p>
+    <div class="chat-pair">
+      <p class="chat-request"><strong>Ты</strong> Придумай быстрый ужин.</p>
+      <p class="chat-response"><strong>ChatGPT</strong> Сделай салат с нутом. Для начала замочи нут на ночь.</p>
+    </div>
+    <div class="composer-actions" role="group" aria-label="Уточнить ответ">
+      ${dinnerDemo.map(([label], index) => `<button class="outline" type="button" data-dinner-choice="${index}" aria-pressed="false">${label}</button>`).join('')}
+    </div>
+    <div data-dinner-result aria-live="polite"></div>
+  </div>`;
+}
+
+function renderToolMap() {
+  return `<ul class="tool-map">
+    <li><span aria-hidden="true">⌕</span><strong>Поиск</strong><p>Нужно узнать актуальное. Например, проверить часы работы музея.</p></li>
+    <li><span aria-hidden="true">▧</span><strong>Фото</strong><p>Нужно разобрать то, что видишь. Например, прочитать этикетку.</p></li>
+    <li><span aria-hidden="true">≋</span><strong>Голос</strong><p>Хочется спросить вслух. Например, уточнить рецепт, пока руки заняты.</p></li>
+  </ul>`;
+}
+
+function renderPhotoExercise() {
+  const prompt = 'Прочитай этикетку на фото. Напиши три правила ухода. Если строку не видно, отметь это и не угадывай.';
+  return `<div class="photo-exercise">
+    <figure>
+      <img src="images/practice-label.jpg" alt="Учебное фото носков с этикеткой об уходе" width="1200" height="800" loading="lazy">
+      <figcaption>Учебное фото этикетки на вязаных носках.</figcaption>
+    </figure>
+    <p>Сохрани фото, прикрепи его в новом чате и отправь этот запрос.</p>
+    <blockquote>«${escapeHtml(prompt)}»</blockquote>
+    <div class="composer-actions">
+      <a class="outline" href="images/practice-label.jpg" download="uchebnaya-etiketka.jpg">Скачать фото</a>
+      <button class="outline" type="button" data-copy="${escapeHtml(prompt)}">Скопировать запрос для фото</button>
+    </div>
+    <details class="lesson-details">
+      <summary>Сверить ответ с этикеткой</summary>
+      <p>Ручная стирка. Температура воды до 30 °C. Сушить горизонтально.</p>
+    </details>
+  </div>`;
+}
+
+function renderPrivacyExample() {
+  return `<figure class="privacy-example">
+    <div class="privacy-pair">
+      <div class="privacy-card"><h3>До</h3><p>Имя: Анна Примерова<br>Телефон: +7 000 000-00-00<br>Заказ: УЧЕБНЫЙ-019</p><p>Посылка пришла с повреждением. Как оформить замену?</p></div>
+      <div class="privacy-card"><h3>После</h3><p>Имя: <span class="redaction">скрыто</span><br>Телефон: <span class="redaction">скрыт</span><br>Заказ: <span class="redaction">скрыт</span></p><p>Посылка пришла с повреждением. Как оформить замену?</p></div>
+    </div>
+    <figcaption>Вымышленное письмо. Оставь описание ситуации. Личные данные закрой непрозрачной заливкой или обрежь изображение, затем проверь сохранённый снимок.</figcaption>
+  </figure>`;
 }
 
 function renderSection([title, content, note]) {
@@ -237,6 +312,11 @@ function renderSection([title, content, note]) {
   else if (Array.isArray(content)) body = `<ol>${content.map((item) => `<li>${item}</li>`).join('')}</ol>`;
   else if (content.platform) body = renderPlatform(content.platform);
   else if (content.examples) body = renderExamples(content.examples);
+  else if (content.demoChat) body = renderDinnerDemo();
+  else if (content.toolMap) body = renderToolMap();
+  else if (content.photoExercise) body = renderPhotoExercise();
+  else if (content.privacyExample) body = renderPrivacyExample();
+  else if (content.faq) body = content.faq.map(([question, answer]) => `<details class="lesson-details"><summary>${escapeHtml(question)}</summary><p>${escapeHtml(answer)}</p></details>`).join('');
   else if (content.prompt) body = `<p>${content.instructions}</p>
     <blockquote>«${escapeHtml(content.prompt)}»</blockquote>
     <div class="composer-actions">
@@ -447,6 +527,18 @@ function renderRoute(focus) {
 main.addEventListener('click', (event) => {
   const copyButton = event.target.closest('button[data-copy]');
   if (copyButton) copy(copyButton.dataset.copy);
+  const dinnerButton = event.target.closest('button[data-dinner-choice]');
+  if (dinnerButton) {
+    const demo = dinnerButton.closest('[data-dinner-demo]');
+    const [, request, response, explanation] = dinnerDemo[Number(dinnerButton.dataset.dinnerChoice)];
+    demo.querySelectorAll('button[data-dinner-choice]').forEach((button) => {
+      button.setAttribute('aria-pressed', String(button === dinnerButton));
+    });
+    demo.querySelector('[data-dinner-result]').innerHTML = `<div class="chat-pair">
+      <p class="chat-request"><strong>Ты</strong> ${escapeHtml(request)}</p>
+      <p class="chat-response"><strong>ChatGPT</strong> ${escapeHtml(response)}</p>
+    </div><p class="section-note">${escapeHtml(explanation)}</p>`;
+  }
   const platformButton = event.target.closest('button[data-platform]');
   if (platformButton) {
     state.platform = platformButton.dataset.platform;
