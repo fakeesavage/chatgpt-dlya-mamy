@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7fc">
+  <meta name="description" content="Простой курс по ChatGPT для мамы. Android, Windows, хорошие запросы и практика без спешки.">
+  <title>ChatGPT для мамы</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="lessons.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <section id="welcome" class="welcome" aria-label="Приветствие" hidden>
+    <div class="welcome-top"><span><span aria-hidden="true">♥</span> &nbsp; Для мамы</span><button id="skip" class="text-button" type="button">К урокам</button></div>
+    <div class="welcome-content">
+      <div class="orbit" aria-hidden="true"><span>♥</span><i></i><b>✦</b></div>
+      <div class="welcome-step" id="welcome-step"><h1 id="welcome-title" tabindex="-1">Привет, любимая мамочка</h1></div>
+      <div class="welcome-controls">
+        <button class="button welcome-button" id="welcome-next" type="button">Дальше <span aria-hidden="true">✦</span></button>
+        <p class="welcome-count" id="welcome-count">1 из 3</p>
+      </div>
+    </div>
+  </section>
+
+  <div id="course" class="course" hidden>
+    <a class="skip-link" href="#main">К содержанию</a>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="#home"><span class="brand-mark" aria-hidden="true">✦</span> ChatGPT для мамы</a>
+        <div class="top-actions">
+          <button class="text-button replay" type="button" id="replay"><span aria-hidden="true">♥</span> Приветствие</button>
+          <button class="outline" id="font-size" type="button" aria-pressed="false" title="Увеличить текст">Аа <span>Текст</span></button>
+        </div>
+      </div>
+    </header>
+    <div class="shell">
+      <aside class="sidebar">
+        <details id="chapters" open>
+          <summary>Содержание</summary>
+          <div class="nav-body">
+            <a href="#home" class="overview-link" id="overview-link"><span aria-hidden="true">⌂</span> Обзор курса</a>
+            <nav aria-label="Главы курса" id="chapter-links"></nav>
+            <div class="progress-card">
+              <div><strong>Мой прогресс</strong><span id="progress-count">0 / 8</span></div>
+              <progress id="progress" value="0" max="8" aria-label="Прочитанные главы"></progress>
+              <p>Отмечай главы по мере чтения.</p>
+            </div>
+          </div>
+        </details>
+      </aside>
+      <main id="main" tabindex="-1"></main>
+    </div>
+    <footer class="footer"><span><span aria-hidden="true">♥</span> Сделано с любовью</span><a href="#sources">Справка OpenAI</a></footer>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <noscript><p class="noscript">Включи JavaScript в браузере, чтобы открыть главы и пройти тесты.</p></noscript>
+</body>
+</html>
