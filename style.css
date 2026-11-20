@@ -120,8 +120,10 @@ main { min-width: 0; outline: none; }
 .composer h2 { margin: 0 0 .5rem; }
 .fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .65rem; margin: .95rem 0; }
 .fields label { font-weight: 750; display: grid; gap: .3rem; }
-.fields input { width: 100%; min-width: 0; border: 1px solid #bcb7d3; border-radius: 10px; padding: .65rem; color: var(--ink); background: #fcfbff; }
+.fields input, #practice-result { width: 100%; min-width: 0; border: 1px solid #bcb7d3; border-radius: 10px; padding: .65rem; color: var(--ink); background: #fcfbff; }
 .fields input::placeholder { color: #66637b; }
+.practice-label { display: block; margin: .95rem 0 .3rem; font-weight: 750; }
+#practice-result { display: block; resize: vertical; }
 .output { background: #f1edff; border-radius: 12px; white-space: pre-wrap; overflow-wrap: anywhere; padding: .8rem; margin-top: .6rem; }
 .composer-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: .75rem; }
 .quiz { margin-top: 1.9rem; }

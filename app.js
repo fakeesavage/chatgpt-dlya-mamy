@@ -26,6 +26,9 @@ state.done = Array.isArray(state.done)
 state.platform = ['android', 'windows'].includes(state.platform)
   ? state.platform
   : /Android/i.test(navigator.userAgent) ? 'android' : 'windows';
+state.answers = state.answers && typeof state.answers === 'object' ? state.answers : {};
+state.composers = state.composers && typeof state.composers === 'object' ? state.composers : {};
+const composerFields = ['task', 'context', 'limits', 'format'];
 
 let greetingIndex = 0;
 let greetingBusy = false;
@@ -168,7 +171,12 @@ function updateNav(route) {
 }
 
 function renderHome() {
+  const lastLesson = lessons.find((lesson) => lesson.id === state.lastLesson);
   const next = lessons.find((lesson) => !state.done.includes(lesson.id));
+  const resume = lastLesson || next;
+  const resumeLabel = lastLesson || state.done.length
+    ? 'Продолжить обучение'
+    : 'Начать с первой главы';
   return `
     <section class="hero">
       <div class="hero-copy">
@@ -176,7 +184,7 @@ function renderHome() {
         <h1>ChatGPT для мамы</h1>
         <p>Научись задавать понятные вопросы, находить нужные кнопки и проверять ответы. Можно идти по порядку или открыть любую главу.</p>
         <div class="composer-actions">
-          <a class="button" href="#${next?.id || 'practice'}">${state.done.length ? (next ? 'Продолжить обучение' : 'Открыть практику') : 'Начать с первой главы'}</a>
+          <a class="button" href="#${resume?.id || 'practice'}">${resume ? resumeLabel : 'Открыть практику'}</a>
           <a class="outline" href="#prompts">Как писать запросы</a>
         </div>
       </div>
@@ -229,6 +237,12 @@ function renderSection([title, content, note]) {
   else if (Array.isArray(content)) body = `<ol>${content.map((item) => `<li>${item}</li>`).join('')}</ol>`;
   else if (content.platform) body = renderPlatform(content.platform);
   else if (content.examples) body = renderExamples(content.examples);
+  else if (content.prompt) body = `<p>${content.instructions}</p>
+    <blockquote>«${escapeHtml(content.prompt)}»</blockquote>
+    <div class="composer-actions">
+      <button class="outline" type="button" data-copy="${escapeHtml(content.prompt)}">Скопировать первый запрос</button>
+      <a class="outline" href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">Открыть ChatGPT</a>
+    </div>`;
   else body = `<div class="callout"><p>${content.callout}</p></div>`;
   return `<section class="article-section"><h2>${title}</h2>${body}${note ? `<p class="section-note">${note}</p>` : ''}</section>`;
 }
@@ -253,6 +267,15 @@ function renderComposer() {
   </section>`;
 }
 
+function renderPracticeResult() {
+  return `<section class="composer">
+    <h2>Мой результат</h2>
+    <p id="practice-note">Запиши, что получилось и какое уточнение улучшило ответ. Можно сохранить короткую заметку или полезный фрагмент ответа. Заметка сохраняется в этом браузере.</p>
+    <label class="practice-label" for="practice-result">Заметка о практике</label>
+    <textarea id="practice-result" rows="4" maxlength="4000" aria-describedby="practice-note"></textarea>
+  </section>`;
+}
+
 function renderQuiz(questions) {
   return `<details class="quiz">
     <summary>Короткий тест <small>· по желанию</small></summary>
@@ -270,6 +293,7 @@ function renderLesson(lesson, index) {
     <header class="article-top"><p class="eyebrow">Глава ${index + 1} из ${lessons.length} · ${lesson.minutes} мин</p><h1>${lesson.title}</h1><p>${lesson.summary}</p></header>
     ${lesson.sections.map(renderSection).join('')}
     ${lesson.composer ? renderComposer() : ''}
+    ${lesson.id === 'practice' ? renderPracticeResult() : ''}
     ${renderQuiz(lesson.questions)}
     <div class="lesson-footer">
       <button class="outline" type="button" id="mark-done"></button>
@@ -307,11 +331,10 @@ function setUpLesson(lesson) {
     updateNav(lesson.id);
   });
 
-  main.querySelector('.quiz').addEventListener('change', (event) => {
-    const fieldset = event.target.closest('[data-question]');
-    if (!fieldset) return;
-    const [, options, correct, why] = lesson.questions[Number(fieldset.dataset.question)];
-    const answer = Number(event.target.value);
+  const quiz = main.querySelector('.quiz');
+  const answers = Array.isArray(state.answers[lesson.id]) ? state.answers[lesson.id] : [];
+  function showAnswer(fieldset, question, answer) {
+    const [, options, correct, why] = lesson.questions[question];
     fieldset.querySelectorAll('.answer').forEach((label, index) => {
       label.classList.toggle('correct', index === correct);
       label.classList.toggle('incorrect', index === answer && answer !== correct);
@@ -320,11 +343,58 @@ function setUpLesson(lesson) {
     feedback.classList.toggle('success', answer === correct);
     feedback.hidden = false;
     feedback.innerHTML = `<strong>${answer === correct ? 'Верно!' : `Правильный ответ: ${escapeHtml(options[correct])}`}</strong><p>${why}</p>`;
+  }
+
+  quiz.querySelectorAll('[data-question]').forEach((fieldset, question) => {
+    const answer = answers[question];
+    if (!Number.isInteger(answer)) return;
+    const input = fieldset.querySelector(`input[value="${answer}"]`);
+    if (!input) return;
+    input.checked = true;
+    quiz.open = true;
+    showAnswer(fieldset, question, answer);
   });
+  quiz.addEventListener('change', (event) => {
+    const fieldset = event.target.closest('[data-question]');
+    if (!fieldset) return;
+    const question = Number(fieldset.dataset.question);
+    const answer = Number(event.target.value);
+    answers[question] = answer;
+    state.answers[lesson.id] = answers;
+    save();
+    showAnswer(fieldset, question, answer);
+  });
+
+  const practiceResult = byId('practice-result');
+  if (practiceResult) {
+    if (typeof state.practiceResult === 'string') practiceResult.value = state.practiceResult;
+    practiceResult.addEventListener('input', () => {
+      state.practiceResult = practiceResult.value;
+      save();
+    });
+  }
 
   const composer = byId('composer');
   if (!composer) return;
-  composer.elements.task.addEventListener('input', () => composer.elements.task.setCustomValidity(''));
+  const savedComposer = state.composers[lesson.id];
+  const draft = savedComposer && typeof savedComposer === 'object' ? savedComposer : {};
+  const output = byId('prompt-output');
+  const result = byId('composer-result');
+  for (const field of composerFields) {
+    if (typeof draft[field] === 'string') composer.elements[field].value = draft[field];
+  }
+  if (typeof draft.output === 'string' && draft.output) {
+    output.textContent = draft.output;
+    result.hidden = false;
+  }
+  composer.addEventListener('input', (event) => {
+    const { name, value } = event.target;
+    if (!composerFields.includes(name)) return;
+    if (name === 'task') composer.elements.task.setCustomValidity('');
+    draft[name] = value;
+    state.composers[lesson.id] = draft;
+    save();
+  });
   composer.addEventListener('submit', (event) => {
     event.preventDefault();
     const data = new FormData(composer);
@@ -337,13 +407,16 @@ function setUpLesson(lesson) {
     const context = data.get('context').trim();
     const limits = data.get('limits').trim();
     const format = data.get('format').trim();
-    byId('composer-result').hidden = false;
-    byId('prompt-output').textContent = [
+    draft.output = [
       task,
       context && `Контекст: ${context}`,
       limits && `Условия: ${limits}`,
       format && `Формат ответа: ${format}`
     ].filter(Boolean).join('\n');
+    output.textContent = draft.output;
+    result.hidden = false;
+    state.composers[lesson.id] = draft;
+    save();
   });
   byId('copy-composed').addEventListener('click', () => copy(byId('prompt-output').textContent));
 }
@@ -354,6 +427,10 @@ function renderRoute(focus) {
   const lesson = lessons[index];
   const route = lesson?.id || (hash === 'sources' ? 'sources' : 'home');
   if (route !== lastRoute) {
+    if (lesson && state.lastLesson !== lesson.id) {
+      state.lastLesson = lesson.id;
+      save();
+    }
     if (narrow.matches) chapters.open = false;
     updateNav(route);
     main.innerHTML = lesson ? renderLesson(lesson, index) : route === 'sources' ? renderSources() : renderHome();
