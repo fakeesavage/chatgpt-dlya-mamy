@@ -214,7 +214,7 @@ main { min-width: 0; outline: none; }
   .hero { display: block; padding: 1.25rem; border-radius: 20px; }
   .hero h1 { max-width: 10ch; font-size: clamp(2rem, 10vw, 3.05rem); }
   .hero p { max-width: none; }
-  .hero-illustration { position: absolute; top: 1.05rem; right: 1rem; width: 21%; border-radius: 9px; }
+  .hero-illustration { position: absolute; top: 3.45rem; right: 1rem; width: 21%; border-radius: 9px; }
   .chapter-grid, .comparison, .fields, .privacy-pair, .article-section .tool-map, .android-guide { grid-template-columns: minmax(0, 1fr); }
   .android-screen { width: min(100%, 220px); }
   .welcome-content { grid-template-rows: auto minmax(8rem, auto) auto; gap: 1rem; }
